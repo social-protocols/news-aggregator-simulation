@@ -7,13 +7,12 @@ import cats.effect.SyncIO
 
 object App {
   val app = {
-    val liveNewPage     = Subject.behavior[Seq[Submission]](Nil)
-    val liveTopPage     = Subject.behavior[Seq[Submission]](Nil)
-    val bestQualityPage = Subject.behavior[Seq[Submission]](Nil)
-    val tickTime        = Subject.behavior(1000)
-    val resetTrigger    = Subject.behavior(())
-    val subSteps        = 600
-    val tick            = resetTrigger
+    val liveNewPage  = Subject.behavior[Seq[Submission]](Nil)
+    val liveTopPage  = Subject.behavior[Seq[Submission]](Nil)
+    val tickTime     = Subject.behavior(1000)
+    val resetTrigger = Subject.behavior(())
+    val subSteps     = 600
+    val tick         = resetTrigger
       .combineLatest(tickTime)
       .switchMap { case (_, tickTime) =>
         Observable
@@ -31,7 +30,6 @@ object App {
     tick.value.sampleMillis(33).foreach { _ =>
       liveNewPage.onNext(Simulation.newpage(Simulation.submissions).toSeq)
       liveTopPage.onNext(Simulation.frontpage(Simulation.submissions).toSeq)
-      bestQualityPage.onNext(Simulation.bestQualityFrontpage(Simulation.submissions).toSeq)
     }
 
     div(

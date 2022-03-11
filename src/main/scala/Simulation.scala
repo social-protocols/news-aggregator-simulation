@@ -49,18 +49,13 @@ object Simulation {
       sub.rankingFormulaValue = rankingFormula(sub.score, ageSeconds)
     }
 
-  def bestQualityFrontpage(submissions: mutable.ArrayBuffer[Submission]) =
-    submissions
-      .takeRight(Data.updateSize)
-      .sortBy(-_.quality)
-      .take(Data.frontpageSize)
-  def frontpage(submissions: mutable.ArrayBuffer[Submission])            =
+  def frontpage(submissions: mutable.ArrayBuffer[Submission]) =
     submissions
       .takeRight(Data.updateSize)
       .sortBy(-_.rankingFormulaValue)
       .filter(_.score >= Data.minScoreToAppearOnFrontpage)
       .take(Data.frontpageSize)
-  def newpage(submissions: mutable.ArrayBuffer[Submission])              =
+  def newpage(submissions: mutable.ArrayBuffer[Submission])   =
     submissions.takeRight(Data.newPageSize).reverse
 
   def usersVote(
