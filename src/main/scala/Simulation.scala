@@ -1,6 +1,7 @@
 package simulation
 
 import collection.mutable
+import scala.collection.mutable.ArrayBuffer
 import util.Random.{nextDouble => nextRandomDouble}
 
 class Submission(
@@ -18,10 +19,23 @@ object Submission {
 }
 
 object Simulation {
+  val submissions    = mutable.ArrayBuffer.empty[Submission]
+  var timeSeconds    = 0L
+  var nextSubmission = Data.nextSubmissionArrivalDelay.sample(1).head
+  var nextVote       = Data.nextVoteArrivalDelay.sample(1).head
+  initializeFirstSubmissions()
+
+  def initializeFirstSubmissions(): Unit =
+    for (_ <- 0 until 1500)
+      submit(
+        timeSeconds,
+        submissions,
+        score = 5,
+      ) // TODO: initialize with the 1500 stories of real data
 
   def submit(
     timeSeconds: Long,
-    submissions: mutable.ArrayBuffer[Submission],
+    submissions: ArrayBuffer[Submission],
     score: Int = 1,
   ) = {
     val nextId        = submissions.size.toLong
@@ -34,33 +48,55 @@ object Simulation {
     submissions += newSubmission
   }
 
-  def rankingFormula(upvotes: Int, ageSeconds: Long): Double = {
-    // http://www.righto.com/2013/11/how-hacker-news-ranking-really-works.html
-    val ageHours = ageSeconds / 3600.0
-    Math.pow(upvotes - 1.0, 0.8) / Math.pow(ageHours + 2, 1.8)
+  def nextStep() = {
+    val submissionArrives = timeSeconds >= nextSubmission
+    if (submissionArrives) {
+      submit(timeSeconds, submissions)
+      nextSubmission += Data.nextSubmissionArrivalDelay.sample(1).head
+    }
+
+    if (timeSeconds % Data.updateIntervalSeconds == 0)
+      updateScoresOfNewestSubmissions(timeSeconds, submissions)
+
+    val voteArrives = timeSeconds >= nextVote
+    if (voteArrives) {
+      usersVote(frontpage(submissions), newpage(submissions))
+      nextVote += Data.nextVoteArrivalDelay.sample(1).head
+    }
+
+    timeSeconds += 1
   }
 
   def updateScoresOfNewestSubmissions(
     timeSeconds: Long,
-    submissions: mutable.ArrayBuffer[Submission],
+    submissions: ArrayBuffer[Submission],
   ) =
     submissions.takeRight(Data.updateSize).foreach { sub =>
       val ageSeconds = sub.age(timeSeconds)
       sub.rankingFormulaValue = rankingFormula(sub.score, ageSeconds)
     }
 
-  def frontpage(submissions: mutable.ArrayBuffer[Submission]) =
+  def rankingFormula(upvotes: Int, ageSeconds: Long): Double = {
+    // http://www.righto.com/2013/11/how-hacker-news-ranking-really-works.html
+    val ageHours = ageSeconds / 3600.0
+    Math.pow(upvotes - 1.0, 0.8) / Math.pow(ageHours + 2, 1.8)
+  }
+
+  def recentSubmissions(submissions: ArrayBuffer[Submission]) = submissions.takeRight(Data.updateSize)
+
+  def frontpage(submissions: ArrayBuffer[Submission]) =
     submissions
       .takeRight(Data.updateSize)
       .sortBy(-_.rankingFormulaValue)
       .filter(_.score >= Data.minScoreToAppearOnFrontpage)
       .take(Data.frontpageSize)
-  def newpage(submissions: mutable.ArrayBuffer[Submission])   =
+
+  def newpage(submissions: ArrayBuffer[Submission]) =
     submissions.takeRight(Data.newPageSize).reverse
 
   def usersVote(
-    frontpage: mutable.ArrayBuffer[Submission],
-    newpage: mutable.ArrayBuffer[Submission],
+    frontpage: ArrayBuffer[Submission],
+    newpage: ArrayBuffer[Submission],
   ) = {
     val x = 1.0
     if (nextRandomDouble() > Data.newFrontPageVotingRatio) {
@@ -88,36 +124,5 @@ object Simulation {
         }
       }
     }
-  }
-
-  var timeSeconds    = 0L
-  var nextSubmission = Data.nextSubmissionArrivalDelay.sample(1).head
-  var nextVote       = Data.nextVoteArrivalDelay.sample(1).head
-  val submissions    = mutable.ArrayBuffer.empty[Submission]
-  for (_ <- 0 until 1500)
-    submit(
-      timeSeconds,
-      submissions,
-      score = 5,
-    ) // TODO: initialize with the 1500 stories of real data
-
-  def nextStep() = {
-
-    val submissionArrives = timeSeconds >= nextSubmission
-    if (submissionArrives) {
-      submit(timeSeconds, submissions)
-      nextSubmission += Data.nextSubmissionArrivalDelay.sample(1).head
-    }
-
-    if (timeSeconds % Data.updateIntervalSeconds == 0)
-      updateScoresOfNewestSubmissions(timeSeconds, submissions)
-
-    val voteArrives = timeSeconds >= nextVote
-    if (voteArrives) {
-      usersVote(frontpage(submissions), newpage(submissions))
-      nextVote += Data.nextVoteArrivalDelay.sample(1).head
-    }
-
-    timeSeconds += 1
   }
 }

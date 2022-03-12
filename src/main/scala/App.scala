@@ -3,16 +3,20 @@ package simulation
 import outwatch._
 import outwatch.dsl._
 import colibri._
+import org.scalajs.dom
 import cats.effect.SyncIO
 
 object App {
   val app = {
-    val liveNewPage  = Subject.behavior[Seq[Submission]](Nil)
-    val liveTopPage  = Subject.behavior[Seq[Submission]](Nil)
-    val tickTime     = Subject.behavior(1000)
-    val resetTrigger = Subject.behavior(())
-    val subSteps     = 600
-    val tick         = resetTrigger
+    val liveNewPage       = Subject.behavior[Vector[Submission]](Vector.empty)
+    val liveTopPage       = Subject.behavior[Vector[Submission]](Vector.empty)
+    val recentSubmissions = Subject.behavior[Vector[Submission]](Vector.empty)
+    val tickTime          = Subject.behavior(1000)
+    val resetTrigger      = Subject.behavior(())
+
+    val subSteps = 600
+
+    val tick = resetTrigger
       .combineLatest(tickTime)
       .switchMap { case (_, tickTime) =>
         Observable
@@ -27,9 +31,10 @@ object App {
     }
 
     // visualization runs independently of simulation
-    tick.value.sampleMillis(33).foreach { _ =>
-      liveNewPage.onNext(Simulation.newpage(Simulation.submissions).toSeq)
-      liveTopPage.onNext(Simulation.frontpage(Simulation.submissions).toSeq)
+    tick.value.sampleMillis(1000).foreach { _ =>
+      liveNewPage.onNext(Simulation.newpage(Simulation.submissions).toVector)
+      liveTopPage.onNext(Simulation.frontpage(Simulation.submissions).toVector)
+      recentSubmissions.onNext(Simulation.recentSubmissions(Simulation.submissions).toVector)
     }
 
     div(
@@ -37,32 +42,65 @@ object App {
       managed(SyncIO(tick.connect())),
       SpeedSlider(tickTime),
       div(
-        display.flex,
+        cls := "flex items-start",
         liveNewPage.map(x => showPage("New", x)),
         liveTopPage.map(x => showPage("Frontpage", x)),
+        showUpvoteQualityPlot(recentSubmissions)(
+          attr("width")  := s"400",
+          attr("height") := s"600",
+        ),
       ),
     )
   }
 
-  def showPage(title: String, submissions: Seq[Submission]) =
+  def showUpvoteQualityPlot(submissions: Observable[Vector[Submission]]) =
+    canvas(
+      cls := "border border-gray-400",
+      managedElement { elem =>
+        val canvasElement = elem.asInstanceOf[dom.HTMLCanvasElement]
+        val width         = canvasElement.width.toDouble;
+        val height        = canvasElement.height.toDouble;
+
+        val context =
+          elem
+            .asInstanceOf[dom.HTMLCanvasElement]
+            .getContext("2d")
+            .asInstanceOf[dom.CanvasRenderingContext2D];
+
+        // bottom left is (0,0)
+        context.translate(0, height);
+        context.scale(1, -1);
+
+        context.fillStyle = "rgb(59, 130, 246, 0.3)"
+
+        submissions.foreach { submissions =>
+          context.clearRect(0, 0, width, height)
+
+          submissions.foreach { submission =>
+            val x = submission.quality * width
+            val y = submission.score.toDouble
+            context.beginPath()
+            context.arc(x, y, 3, 0, Math.PI * 2)
+            context.fill()
+          }
+        }
+        Cancelable(() => ())
+      },
+    )
+
+  def showPage(title: String, submissions: Vector[Submission]) =
     div(
-      cls := "p-5",
+      cls := "p-5 w-80",
       div(title),
       submissions.take(30).map(showSubmission),
     )
-
-  def timeSpanFromSeconds(seconds: Long): String = {
-    val ageHours = seconds / 3600
-    val ageMin   = (seconds % 3600) / 60
-    s"${if (ageHours == 0) s"${ageMin}min" else s"${ageHours}h"}"
-  }
 
   def showSubmission(submission: Submission): HtmlVNode = {
     val title    = s"Story ${submission.id}"
     val subtitle =
       s"${submission.score} points, ${timeSpanFromSeconds(Simulation.timeSeconds - submission.timeSeconds)} ago"
 
-    val qualityAlpha = Math.min(submission.quality / 0.04, 1.0)
+    val qualityAlpha = Math.min(submission.quality, 1.0)
     div(
       cls := "mt-2",
       div(
@@ -76,5 +114,11 @@ object App {
       ),
       div(subtitle, opacity := 0.5),
     )
+  }
+
+  def timeSpanFromSeconds(seconds: Long): String = {
+    val ageHours = seconds / 3600
+    val ageMin   = (seconds % 3600) / 60
+    s"${if (ageHours == 0) s"${ageMin}min" else s"${ageHours}h"}"
   }
 }
