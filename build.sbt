@@ -31,6 +31,7 @@ lazy val root = (project in file("."))
     libraryDependencies          ++= Seq(
       "io.github.outwatch"                   %%% "outwatch"          % versions.outwatch,
       "io.github.outwatch"                   %%% "outwatch-util"     % versions.outwatch,
+      "com.github.fdietze.flatland"          %%% "flatland"          % "6047f7b",
       "com.github.fdietze.probability-monad" %%% "probability-monad" % "837a419257883",
     ),
     Compile / npmDevDependencies ++= Seq(
@@ -58,6 +59,7 @@ lazy val root = (project in file("."))
       .LibraryOnly(), // https://scalacenter.github.io/scalajs-bundler/cookbook.html#performance
     fastOptJS / webpackConfigFile := Some(baseDirectory.value / "webpack.config.dev.js"),
     fullOptJS / webpackConfigFile := Some(baseDirectory.value / "webpack.config.prod.js"),
+    fullOptJS / scalacOptions     += "-Xdisable-assertions",
   )
 
 addCommandAlias("prod", "fullOptJS/webpack")

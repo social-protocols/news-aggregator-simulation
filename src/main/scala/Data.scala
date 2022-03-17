@@ -3,16 +3,15 @@ package simulation
 import probability_monad._
 
 object Data {
-  val updateSize              = 1500
-  val updateIntervalSeconds   = 10
-  val frontpageSize           = 90
-  val newPageSize             = 90
+  val updateSize              = 1500 // TODO: source for this number
+  val updateIntervalSeconds   = 15   // TODO: source for this number
   val newFrontPageVotingRatio =
     0.0847554613080211 // select (select cast(sum(gain) as real) from dataset where newrank is not null and toprank is null) / (select sum(gain) from dataset where newrank is null and toprank is not null);
   val minScoreToAppearOnFrontpage =
     3 // select count(*), score, id from dataset where toprank is not null group by score limit 10;
 
   val nextSubmissionArrivalDelay = {
+    // TODO: depend on time-of-day and day-of-week
     val averageSubmissionArrivalSeconds = 78.290865 // from bigquery 2021
     Distribution.exponential(
       1.0 / averageSubmissionArrivalSeconds,

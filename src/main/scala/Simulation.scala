@@ -1,80 +1,98 @@
 package simulation
 
-import collection.mutable
-import scala.collection.mutable.ArrayBuffer
 import util.Random.{nextDouble => nextRandomDouble}
 
-class Submission(
-  val id: Long,
-  val timeSeconds: Long,
-  val quality: Double,
-  var score: Int = 1, // = upvotes + 1
-  var rankingFormulaValue: Double = 0,
-) {
-  def age(nowTick: Long) = nowTick - timeSeconds
-}
-
-object Submission {
-  def randomQuality = Data.qualityDistribution.sample(1).head
-}
+import flatland._
 
 object Simulation {
-  val submissions    = mutable.ArrayBuffer.empty[Submission]
-  var timeSeconds    = 0L
+  var nowSeconds     = 0L
   var nextSubmission = Data.nextSubmissionArrivalDelay.sample(1).head
   var nextVote       = Data.nextVoteArrivalDelay.sample(1).head
-  initializeFirstSubmissions()
 
-  def initializeFirstSubmissions(): Unit =
-    for (_ <- 0 until 1500)
-      submit(
-        timeSeconds,
-        submissions,
-        score = 5,
-      ) // TODO: initialize with the 1500 stories of real data
+  def age(submissionTimeSeconds: Long) = submissionTimeSeconds - nowSeconds
 
-  def submit(
-    timeSeconds: Long,
-    submissions: ArrayBuffer[Submission],
-    score: Int = 1,
-  ) = {
-    val nextId        = submissions.size.toLong
-    val newSubmission = new Submission(
-      id = nextId,
-      timeSeconds = timeSeconds,
-      quality = Submission.randomQuality,
-      score = score,
-    )
-    submissions += newSubmission
+  object submissions {
+    val id                    = flatland.ArrayQueueLong.create(Data.updateSize)
+    val quality               = flatland.ArrayQueueDouble.create(Data.updateSize)
+    val upvotes               = flatland.ArrayQueueInt.create(Data.updateSize)
+    val submissionTimeSeconds = flatland.ArrayQueueLong.create(Data.updateSize)
+    val rankingFormulaValue   = flatland.ArrayQueueDouble.create(Data.updateSize)
+
+    private val frontpageIndicesArray = new Array[Int](Data.updateSize)
+    val frontPageIndices              = flatland.ArraySliceInt(frontpageIndicesArray, 0, 0)
+
+    def add(
+      id: Long = nextId,
+      quality: Double = Data.qualityDistribution.sample(1).head,
+      upvotes: Int = 1,
+      submissionTimeSeconds: Long = nowSeconds,
+      rankingFormulaValue: Double = 0,
+    ) = {
+      // println(submissionTimeSeconds)
+      // circular buffer overwrites last if full
+      this.id.add(id)
+      this.quality.add(quality)
+      this.upvotes.add(upvotes)
+      this.submissionTimeSeconds.add(submissionTimeSeconds)
+      this.rankingFormulaValue.add(rankingFormulaValue)
+
+      recalculateFrontpage()
+    }
+
+    def recalculateFrontpage() = {
+      // update raking formula values
+      this.submissionTimeSeconds.foreachIndexAndElement { (i, submissionTimeSeconds) =>
+        this.rankingFormulaValue(i) = rankingFormula(this.upvotes(i), age(submissionTimeSeconds))
+      }
+      // extract indices of frontpage candidates
+      var i = 0
+      this.upvotes.foreachIndexAndElement { (queueIndex, upvotes) =>
+        if (upvotes >= Data.minScoreToAppearOnFrontpage) {
+          frontpageIndicesArray(i) = queueIndex
+          i += 1
+        }
+      }
+
+      scala.util.Sorting.stableSort(
+        this.frontpageIndicesArray,
+        (a: Int, b: Int) => this.rankingFormulaValue(a) > this.rankingFormulaValue(b),
+        0,
+        i,
+      )
+
+      frontPageIndices.length = i
+    }
+
+    private var lastId: Long = 0
+    def nextId: Long         = {
+      val next = lastId + 1
+      lastId = next
+      next
+    }
   }
 
   def nextStep() = {
-    val submissionArrives = timeSeconds >= nextSubmission
+    // println(s"nextStep ($nowSeconds), next submission: $nextSubmission")
+    val submissionArrives = nowSeconds >= nextSubmission
     if (submissionArrives) {
-      submit(timeSeconds, submissions)
-      nextSubmission += Data.nextSubmissionArrivalDelay.sample(1).head
+      // println("submit")
+      submissions.add()
+      val delta = Data.nextSubmissionArrivalDelay.sample(1).head
+      nextSubmission += delta
     }
 
-    if (timeSeconds % Data.updateIntervalSeconds == 0)
-      updateScoresOfNewestSubmissions(timeSeconds, submissions)
+    if (nowSeconds % Data.updateIntervalSeconds == 0) {
+      submissions.recalculateFrontpage()
+    }
 
-    val voteArrives = timeSeconds >= nextVote
+    val voteArrives = nowSeconds >= nextVote
     if (voteArrives) {
-      usersVote(frontpage(submissions), newpage(submissions))
+      castVote()
       nextVote += Data.nextVoteArrivalDelay.sample(1).head
     }
 
-    timeSeconds += 1
+    nowSeconds += 1
   }
-
-  def updateScoresOfNewestSubmissions(
-    timeSeconds: Long,
-    submissions: ArrayBuffer[Submission],
-  ) =
-    submissions.takeRight(Data.updateSize).foreach { sub =>
-      val ageSeconds = sub.age(timeSeconds)
-      sub.rankingFormulaValue = rankingFormula(sub.score, ageSeconds)
-    }
 
   def rankingFormula(upvotes: Int, ageSeconds: Long): Double = {
     // http://www.righto.com/2013/11/how-hacker-news-ranking-really-works.html
@@ -82,45 +100,36 @@ object Simulation {
     Math.pow(upvotes - 1.0, 0.8) / Math.pow(ageHours + 2, 1.8)
   }
 
-  def recentSubmissions(submissions: ArrayBuffer[Submission]) = submissions.takeRight(Data.updateSize)
-
-  def frontpage(submissions: ArrayBuffer[Submission]) =
-    submissions
-      .takeRight(Data.updateSize)
-      .sortBy(-_.rankingFormulaValue)
-      .filter(_.score >= Data.minScoreToAppearOnFrontpage)
-      .take(Data.frontpageSize)
-
-  def newpage(submissions: ArrayBuffer[Submission]) =
-    submissions.takeRight(Data.newPageSize).reverse
-
-  def usersVote(
-    frontpage: ArrayBuffer[Submission],
-    newpage: ArrayBuffer[Submission],
-  ) = {
-    val x = 1.0
-    if (nextRandomDouble() > Data.newFrontPageVotingRatio) {
+  def castVote() = {
+    val frontpageSize = submissions.frontPageIndices.length
+    if (frontpageSize > 0 && nextRandomDouble() > Data.newFrontPageVotingRatio) {
       // frontpage
-      var didVote       = false
-      val selectedRanks = Data.voteGainOnTopRankDistribution.sample(1000).distinct.toArray
-      var i             = 0
-      while (!didVote && i < selectedRanks.size) {
-        val selectedRank = selectedRanks(i)
-        if (nextRandomDouble() < x * frontpage(selectedRank).quality) {
-          frontpage(selectedRank).score += 1
-          didVote = true
+      var didVote = false
+      while (!didVote) {
+        val selectedRank = Data.voteGainOnTopRankDistribution.sample(1).head
+        if (selectedRank < frontpageSize) {
+          val selectedSubmission = submissions.frontPageIndices(selectedRank)
+          if (nextRandomDouble() < submissions.quality(selectedSubmission)) {
+            submissions.upvotes(selectedSubmission) += 1
+            didVote = true
+          }
         }
-        i += 1
       }
     }
     else {
       // newpage
-      var didVote = false
-      while (!didVote) {
-        val selectedRank = Data.voteGainOnNewRankDistribution.sample(1).head
-        if (nextRandomDouble() < x * frontpage(selectedRank).quality) {
-          newpage(selectedRank).score += 1
-          didVote = true
+      val storyCount = submissions.upvotes.length
+      if (storyCount > 0) {
+        var didVote = false
+        while (!didVote) {
+          val selectedRank = Data.voteGainOnNewRankDistribution.sample(1).head
+          if (selectedRank < storyCount) {
+            val selectedSubmission = storyCount - 1 - selectedRank
+            if (nextRandomDouble() < submissions.quality(selectedSubmission)) {
+              submissions.upvotes(selectedSubmission) += 1
+              didVote = true
+            }
+          }
         }
       }
     }

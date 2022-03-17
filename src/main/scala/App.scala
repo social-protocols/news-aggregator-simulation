@@ -3,18 +3,17 @@ package simulation
 import outwatch._
 import outwatch.dsl._
 import colibri._
-import org.scalajs.dom
 import cats.effect.SyncIO
 
 object App {
   val app = {
-    val liveNewPage       = Subject.behavior[Vector[Submission]](Vector.empty)
-    val liveTopPage       = Subject.behavior[Vector[Submission]](Vector.empty)
-    val recentSubmissions = Subject.behavior[Vector[Submission]](Vector.empty)
-    val tickTime          = Subject.behavior(1000)
-    val resetTrigger      = Subject.behavior(())
+    val tickTime     = Subject.behavior(1000)
+    val speed        = Subject.behavior(0.0)
+    val resetTrigger = Subject.behavior(())
 
-    val subSteps = 600
+    val refreshMs = 200
+    val subSteps  = 600
+    var lastStep  = Simulation.nowSeconds
 
     val tick = resetTrigger
       .combineLatest(tickTime)
@@ -26,81 +25,59 @@ object App {
       .publish
 
     tick.value.foreach { substeps =>
-      for (_ <- 0 until substeps)
+      try for (_ <- 0 until substeps)
         Simulation.nextStep()
-    }
-
-    // visualization runs independently of simulation
-    tick.value.sampleMillis(1000).foreach { _ =>
-      liveNewPage.onNext(Simulation.newpage(Simulation.submissions).toVector)
-      liveTopPage.onNext(Simulation.frontpage(Simulation.submissions).toVector)
-      recentSubmissions.onNext(Simulation.recentSubmissions(Simulation.submissions).toVector)
+      catch {
+        case e: Throwable => e.printStackTrace()
+      }
     }
 
     div(
-      tick.value.scan(0L)((sum, substeps) => sum + substeps).map(timeSpanFromSeconds),
+      tick.value.scan(0L)((sum, substeps) => sum + substeps).sampleMillis(refreshMs).map(timeSpanFromSeconds),
+      div("speed: ", speed, "x"),
       managed(SyncIO(tick.connect())),
       SpeedSlider(tickTime),
+
+      // visualization runs independently of simulation
       div(
         cls := "flex items-start",
-        liveNewPage.map(x => showPage("New", x)),
-        liveTopPage.map(x => showPage("Frontpage", x)),
-        showUpvoteQualityPlot(recentSubmissions)(
-          attr("width")  := s"400",
-          attr("height") := s"600",
+        tick.value.sampleMillis(refreshMs).map { _ =>
+          speed.onNext((Simulation.nowSeconds - lastStep).toDouble * 1000.0 / refreshMs)
+          lastStep = Simulation.nowSeconds
+
+          VDomModifier(
+            showPage(
+              "New",
+              (Simulation.submissions.id.length - 1) to Math.max(Simulation.submissions.id.length - 30, 0) by -1,
+            ),
+            showPage(
+              "Frontpage",
+              Simulation.submissions.frontPageIndices.take(30),
+            ),
+          )
+        },
+        Plot.upvoteQualityPlot(tick.value.sampleMillis(refreshMs).map(_ => 0 until Simulation.submissions.id.length))(
+          attr("width")  := s"300",
+          attr("height") := s"300",
         ),
       ),
     )
   }
 
-  def showUpvoteQualityPlot(submissions: Observable[Vector[Submission]]) =
-    canvas(
-      cls := "border border-gray-400",
-      managedElement { elem =>
-        val canvasElement = elem.asInstanceOf[dom.HTMLCanvasElement]
-        val width         = canvasElement.width.toDouble;
-        val height        = canvasElement.height.toDouble;
-
-        val context =
-          elem
-            .asInstanceOf[dom.HTMLCanvasElement]
-            .getContext("2d")
-            .asInstanceOf[dom.CanvasRenderingContext2D];
-
-        // bottom left is (0,0)
-        context.translate(0, height);
-        context.scale(1, -1);
-
-        context.fillStyle = "rgb(59, 130, 246, 0.3)"
-
-        submissions.foreach { submissions =>
-          context.clearRect(0, 0, width, height)
-
-          submissions.foreach { submission =>
-            val x = submission.quality * width
-            val y = submission.score.toDouble
-            context.beginPath()
-            context.arc(x, y, 3, 0, Math.PI * 2)
-            context.fill()
-          }
-        }
-        Cancelable(() => ())
-      },
-    )
-
-  def showPage(title: String, submissions: Vector[Submission]) =
+  def showPage(title: String, submissionIndices: Iterable[Int]) =
     div(
       cls := "p-5 w-80",
       div(title),
-      submissions.take(30).map(showSubmission),
+      submissionIndices.map(showSubmission).toSeq,
     )
 
-  def showSubmission(submission: Submission): HtmlVNode = {
-    val title    = s"Story ${submission.id}"
+  def showSubmission(submissionIndex: Int): HtmlVNode = {
+    import Simulation.submissions
+    val title    = s"Story ${submissions.id(submissionIndex)}"
     val subtitle =
-      s"${submission.score} points, ${timeSpanFromSeconds(Simulation.timeSeconds - submission.timeSeconds)} ago"
+      s"${submissions.upvotes(submissionIndex)} points, ${timeSpanFromSeconds(Simulation.nowSeconds - submissions.submissionTimeSeconds(submissionIndex))} ago"
 
-    val qualityAlpha = Math.min(submission.quality, 1.0)
+    val qualityAlpha = Math.min(submissions.quality(submissionIndex), 1.0)
     div(
       cls := "mt-2",
       div(
