@@ -71,6 +71,11 @@ object Simulation {
     }
   }
 
+  object stats {
+    val frontpageUpvotesOnRanks =
+      flatland.ArrayQueueInt.create(20000) // should cover more than a day (~16000 upvotes / day)
+  }
+
   def nextStep() = {
     // println(s"nextStep ($nowSeconds), next submission: $nextSubmission")
     val submissionArrives = nowSeconds >= nextSubmission
@@ -111,6 +116,7 @@ object Simulation {
           val selectedSubmission = submissions.frontPageIndices(selectedRank)
           if (nextRandomDouble() < submissions.quality(selectedSubmission)) {
             submissions.upvotes(selectedSubmission) += 1
+            stats.frontpageUpvotesOnRanks.add(selectedRank)
             didVote = true
           }
         }
