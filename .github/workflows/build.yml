@@ -1,4 +1,4 @@
-name: Test
+name: Build & Deploy
 
 on:
   push:
@@ -65,7 +65,7 @@ jobs:
           sbt fastOptJS/webpack
 
 
-      - name: Deploy to Github Pages
+      - name: Build production assets
         if: github.ref == 'refs/heads/main'
         run: |
           sbt prod
