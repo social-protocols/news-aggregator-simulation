@@ -5,7 +5,7 @@ ThisBuild / scalaVersion := "2.13.8"
 
 val versions = new {
   val outwatch = "1.0.0-RC5"
-  val funPack  = "0.1.12"
+  val funPack  = "0.2.0"
 }
 
 ThisBuild / resolvers ++= Seq(
@@ -36,11 +36,11 @@ lazy val root = (project in file("."))
     ),
     Compile / npmDevDependencies ++= Seq(
       "@fun-stack/fun-pack" -> versions.funPack, // sane defaults for webpack development and production, see webpack.config.*.js
-      "autoprefixer"        -> "10.2.5",
-      "postcss"             -> "8.4.5",
-      "postcss-loader"      -> "4.2.0",
-      "tailwindcss"         -> "3.0.10",
-      "daisyui"             -> "1.25.4",
+      "autoprefixer"        -> "10.4.4",
+      "postcss"             -> "8.4.12",
+      "postcss-loader"      -> "4.3.0",
+      "tailwindcss"         -> "3.0.23",
+      "daisyui"             -> "2.9.0",
     ),
     scalacOptions --= Seq(
       "-Xfatal-warnings",
