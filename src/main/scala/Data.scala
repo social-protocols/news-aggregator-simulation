@@ -49,5 +49,7 @@ object Data {
     voteGainOnTopRankCounts.zipWithIndex.map { case (d, i) => (i, d) }: _*,
   )
 
-  val qualityDistribution = Distribution.normal * 0.1 + 0.5
+  // val qualityDistribution = Distribution.normal * 0.1 + 0.5
+  // val qualityDistribution = Distribution.lognormal
+  val qualityDistribution = Distribution.uniform
 }
