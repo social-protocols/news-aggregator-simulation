@@ -113,7 +113,7 @@ object Plot {
           {
             context.fillStyle = "rgb(246, 136, 59)"
             var maxX = 0.0
-            Data.voteGainOnTopRankCounts.foreachElement { x =>
+            Data.voteGainOnTopRankPerSecond.foreachElement { x =>
               if (x > maxX) maxX = x.toDouble
             }
 
@@ -122,7 +122,8 @@ object Plot {
             @inline def transformY(y: Double)                                        = transform(y, 0, maxRank.toDouble + 1, height)
 
             upvotesPerRank.foreachIndex { rank =>
-              val upvotes = if (rank < Data.voteGainOnTopRankCounts.length) Data.voteGainOnTopRankCounts(rank) else 0
+              val upvotes =
+                if (rank < Data.voteGainOnTopRankPerSecond.length) Data.voteGainOnTopRankPerSecond(rank) else 0
               val y       = transformY(rank.toDouble)
               val ynext   = transformY(rank.toDouble + 1)
               context.fillRect(0, y, transformX(upvotes.toDouble), (ynext - y) / 2)
