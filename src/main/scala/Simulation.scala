@@ -18,6 +18,8 @@ object Simulation {
     val submissionTimeSeconds = flatland.ArrayQueueLong.create(Data.updateSize)
     val rankingFormulaValue   = flatland.ArrayQueueDouble.create(Data.updateSize)
 
+    // val cumulativeVoteOnRankProbability = new Array[Double](Data.updateSize)
+
     private val frontpageIndicesArray = new Array[Int](Data.updateSize)
     val frontPageIndices              = flatland.ArraySliceInt(frontpageIndicesArray, 0, 0)
 
@@ -109,6 +111,22 @@ object Simulation {
     val frontpageSize = submissions.frontPageIndices.length
     if (frontpageSize > 0 && nextRandomDouble() > Data.newFrontPageVotingRatio) {
       // frontpage
+
+      // var lastCumulativeProbability = 0.0
+      // loop(Math.min(frontpageSize, Data.voteGainOnTopRankPerSecond.length)) { rank =>
+      //   val selectedSubmission = submissions.frontPageIndices(rank)
+      //   val probability        = submissions.quality(selectedSubmission) * Data.voteGainOnTopRankPerSecond(rank)
+      //   lastCumulativeProbability = lastCumulativeProbability + probability
+      //   submissions.cumulativeVoteOnRankProbability(rank) = lastCumulativeProbability
+      // }
+      // val selectedPosition          = nextRandomDouble() * lastCumulativeProbability
+      // var selectedRank              = 0
+      // while (selectedPosition > submissions.cumulativeVoteOnRankProbability(selectedRank))
+      //   selectedRank += 1
+      // val selectedSubmission = submissions.frontPageIndices(selectedRank)
+      // submissions.upvotes(selectedSubmission) += 1
+      // stats.frontpageUpvotesOnRanks.add(selectedRank)
+
       var didVote = false
       while (!didVote) {
         val selectedRank = Data.voteGainOnTopRankDistribution.sample(1).head
