@@ -77,6 +77,6 @@ object Data {
   )
 
   // val qualityDistribution = Distribution.normal * 0.1 + 0.5
-  // val qualityDistribution = Distribution.lognormal
-  val qualityDistribution = Distribution.uniform
+  val qualityDistribution = Distribution.lognormal
+  // val qualityDistribution = Distribution.uniform
 }
