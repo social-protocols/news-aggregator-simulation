@@ -32,7 +32,7 @@ lazy val root = (project in file("."))
       "io.github.outwatch"                   %%% "outwatch"          % versions.outwatch,
       "io.github.outwatch"                   %%% "outwatch-util"     % versions.outwatch,
       "com.github.fdietze.flatland"          %%% "flatland"          % "6047f7b",
-      "com.github.fdietze.probability-monad" %%% "probability-monad" % "a5f781fa98",
+      "com.github.fdietze.probability-monad" %%% "probability-monad" % "6bafc61",
     ),
     Compile / npmDevDependencies ++= Seq(
       "@fun-stack/fun-pack" -> versions.funPack, // sane defaults for webpack development and production, see webpack.config.*.js

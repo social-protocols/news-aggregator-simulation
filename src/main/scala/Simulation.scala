@@ -6,8 +6,8 @@ import flatland._
 
 object Simulation {
   var nowSeconds     = 0L
-  var nextSubmission = Data.nextSubmissionArrivalDelay.sample(1).head
-  var nextVote       = Data.nextVoteArrivalDelay.sample(1).head
+  var nextSubmission = Data.nextSubmissionArrivalDelay.get
+  var nextVote       = Data.nextVoteArrivalDelay.get
 
   def age(submissionTimeSeconds: Long) = submissionTimeSeconds - nowSeconds
 
@@ -25,7 +25,7 @@ object Simulation {
 
     def add(
       id: Long = nextId,
-      quality: Double = Data.qualityDistribution.sample(1).head,
+      quality: Double = Data.qualityDistribution.get,
       upvotes: Int = 1,
       submissionTimeSeconds: Long = nowSeconds,
       rankingFormulaValue: Double = 0,
@@ -84,7 +84,7 @@ object Simulation {
     if (submissionArrives) {
       // println("submit")
       submissions.add()
-      val delta = Data.nextSubmissionArrivalDelay.sample(1).head
+      val delta = Data.nextSubmissionArrivalDelay.get
       nextSubmission += delta
     }
 
@@ -95,7 +95,7 @@ object Simulation {
     val voteArrives = nowSeconds >= nextVote
     if (voteArrives) {
       castVote()
-      nextVote += Data.nextVoteArrivalDelay.sample(1).head
+      nextVote += Data.nextVoteArrivalDelay.get
     }
 
     nowSeconds += 1
@@ -129,10 +129,10 @@ object Simulation {
 
       var didVote = false
       while (!didVote) {
-        val selectedRank = Data.voteGainOnTopRankDistribution.sample(1).head
+        val selectedRank = Data.voteGainOnTopRankDistribution.get
         if (selectedRank < frontpageSize) {
           val selectedSubmission = submissions.frontPageIndices(selectedRank)
-          if (Data.qualityDistribution.sample(1).head < submissions.quality(selectedSubmission)) {
+          if (Data.qualityDistribution.get < submissions.quality(selectedSubmission)) {
             submissions.upvotes(selectedSubmission) += 1
             stats.frontpageUpvotesOnRanks.add(selectedRank)
             didVote = true
@@ -146,10 +146,10 @@ object Simulation {
       if (storyCount > 0) {
         var didVote = false
         while (!didVote) {
-          val selectedRank = Data.voteGainOnNewRankDistribution.sample(1).head
+          val selectedRank = Data.voteGainOnNewRankDistribution.get
           if (selectedRank < storyCount) {
             val selectedSubmission = storyCount - 1 - selectedRank
-            if (Data.qualityDistribution.sample(1).head < submissions.quality(selectedSubmission)) {
+            if (Data.qualityDistribution.get < submissions.quality(selectedSubmission)) {
               submissions.upvotes(selectedSubmission) += 1
               didVote = true
             }
