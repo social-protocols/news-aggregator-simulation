@@ -114,7 +114,7 @@ object Simulation {
         val selectedRank = Data.voteGainOnTopRankDistribution.sample(1).head
         if (selectedRank < frontpageSize) {
           val selectedSubmission = submissions.frontPageIndices(selectedRank)
-          if (nextRandomDouble() < submissions.quality(selectedSubmission)) {
+          if (Data.qualityDistribution.sample(1).head < submissions.quality(selectedSubmission)) {
             submissions.upvotes(selectedSubmission) += 1
             stats.frontpageUpvotesOnRanks.add(selectedRank)
             didVote = true
@@ -131,7 +131,7 @@ object Simulation {
           val selectedRank = Data.voteGainOnNewRankDistribution.sample(1).head
           if (selectedRank < storyCount) {
             val selectedSubmission = storyCount - 1 - selectedRank
-            if (nextRandomDouble() < submissions.quality(selectedSubmission)) {
+            if (Data.qualityDistribution.sample(1).head < submissions.quality(selectedSubmission)) {
               submissions.upvotes(selectedSubmission) += 1
               didVote = true
             }
