@@ -83,7 +83,7 @@ object App {
     val subtitle =
       s"${submissions.upvotes(submissionIndex)} points, ${timeSpanFromSeconds(Simulation.nowSeconds - submissions.submissionTimeSeconds(submissionIndex))} ago"
 
-    val qualityAlpha = Math.min(submissions.quality(submissionIndex), 1.0)
+    val qualityAlpha = Math.min(submissions.quality(submissionIndex) / Data.qualityDistribution.ev * 0.5, 1.0)
     div(
       cls := "mt-2",
       div(
