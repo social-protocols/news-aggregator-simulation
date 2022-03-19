@@ -9,7 +9,7 @@ object Simulation {
   var nextSubmission = Data.nextSubmissionArrivalDelay.get
   var nextVote       = Data.nextVoteArrivalDelay.get
 
-  def age(submissionTimeSeconds: Long) = submissionTimeSeconds - nowSeconds
+  def age(submissionTimeSeconds: Long) = nowSeconds - submissionTimeSeconds
 
   object submissions {
     val id                    = flatland.ArrayQueueLong.create(Data.updateSize)

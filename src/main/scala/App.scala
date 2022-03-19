@@ -81,7 +81,7 @@ object App {
     import Simulation.submissions
     val title    = s"Story ${submissions.id(submissionIndex)}"
     val subtitle =
-      s"${submissions.upvotes(submissionIndex)} points, ${timeSpanFromSeconds(Simulation.nowSeconds - submissions.submissionTimeSeconds(submissionIndex))} ago"
+      s"${submissions.upvotes(submissionIndex)} points, ${timeSpanFromSeconds(Simulation.age(submissions.submissionTimeSeconds(submissionIndex)))} ago"
 
     val qualityAlpha = Math.min(submissions.quality(submissionIndex) / Data.qualityDistribution.ev * 0.5, 1.0)
     div(
