@@ -11,7 +11,7 @@ object App {
     val speed        = Subject.behavior(0.0)
     val resetTrigger = Subject.behavior(())
 
-    val refreshMs = 200
+    val refreshMs = 500
     val subSteps  = 600
     var lastStep  = Simulation.nowSeconds
 
