@@ -25,10 +25,8 @@ object App {
       .publish
 
     tick.value.foreach { substeps =>
-      try for (_ <- 0 until substeps)
+      flatland.loop(substeps) { _ =>
         Simulation.nextStep()
-      catch {
-        case e: Throwable => e.printStackTrace()
       }
     }
 
