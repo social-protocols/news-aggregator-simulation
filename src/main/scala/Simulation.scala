@@ -1,13 +1,10 @@
 package simulation
 
-import util.Random.{nextDouble => nextRandomDouble}
-
 import flatland._
 
 object Simulation {
   var nowSeconds     = 0L
   var nextSubmission = Data.nextSubmissionArrivalDelay.get
-  var nextVote       = Data.nextVoteArrivalDelay.get
 
   def age(submissionTimeSeconds: Long) = nowSeconds - submissionTimeSeconds
 
@@ -92,11 +89,7 @@ object Simulation {
       submissions.recalculateFrontpage()
     }
 
-    val voteArrives = nowSeconds >= nextVote
-    if (voteArrives) {
-      castVote()
-      nextVote += Data.nextVoteArrivalDelay.get
-    }
+    castVotes()
 
     nowSeconds += 1
   }
@@ -107,55 +100,33 @@ object Simulation {
     Math.pow(upvotes - 1.0, 0.8) / Math.pow(ageHours + 2, 1.8)
   }
 
-  def castVote() = {
-    val frontpageSize = submissions.frontPageIndices.length
-    if (frontpageSize > 0 && nextRandomDouble() > Data.newFrontPageVotingRatio) {
+  def castVotes() = {
       // frontpage
+    loop(Math.min(Data.voteGainOnTopRankPerSecond.length, submissions.frontPageIndices.length)) { rank =>
+      val storyIndex          = submissions.frontPageIndices(rank)
+      val quality             = submissions.quality(storyIndex)
+      val votesPerRankPerTick = Data.voteGainOnTopRankPerSecond(rank)
+      val lambda              = quality * votesPerRankPerTick
+      val distribution        = Data.voteDistribution(lambda)
+      val numberOfUpvotes     = distribution.get
+      submissions.upvotes(storyIndex) += numberOfUpvotes
 
-      // var lastCumulativeProbability = 0.0
-      // loop(Math.min(frontpageSize, Data.voteGainOnTopRankPerSecond.length)) { rank =>
-      //   val selectedSubmission = submissions.frontPageIndices(rank)
-      //   val probability        = submissions.quality(selectedSubmission) * Data.voteGainOnTopRankPerSecond(rank)
-      //   lastCumulativeProbability = lastCumulativeProbability + probability
-      //   submissions.cumulativeVoteOnRankProbability(rank) = lastCumulativeProbability
-      // }
-      // val selectedPosition          = nextRandomDouble() * lastCumulativeProbability
-      // var selectedRank              = 0
-      // while (selectedPosition > submissions.cumulativeVoteOnRankProbability(selectedRank))
-      //   selectedRank += 1
-      // val selectedSubmission = submissions.frontPageIndices(selectedRank)
-      // submissions.upvotes(selectedSubmission) += 1
-      // stats.frontpageUpvotesOnRanks.add(selectedRank)
-
-      var didVote = false
-      while (!didVote) {
-        val selectedRank = Data.voteGainOnTopRankDistribution.get
-        if (selectedRank < frontpageSize) {
-          val selectedSubmission = submissions.frontPageIndices(selectedRank)
-          if (Data.qualityDistribution.get < submissions.quality(selectedSubmission)) {
-            submissions.upvotes(selectedSubmission) += 1
-            stats.frontpageUpvotesOnRanks.add(selectedRank)
-            didVote = true
+      // update stats
+      loop(numberOfUpvotes) { _ =>
+        stats.frontpageUpvotesOnRanks.add(rank)
           }
         }
-      }
-    }
-    else {
+
       // newpage
-      val storyCount = submissions.upvotes.length
-      if (storyCount > 0) {
-        var didVote = false
-        while (!didVote) {
-          val selectedRank = Data.voteGainOnNewRankDistribution.get
-          if (selectedRank < storyCount) {
-            val selectedSubmission = storyCount - 1 - selectedRank
-            if (Data.qualityDistribution.get < submissions.quality(selectedSubmission)) {
-              submissions.upvotes(selectedSubmission) += 1
-              didVote = true
+    loop(Math.min(Data.voteGainOnNewRankPerSecond.length, submissions.quality.length)) { rank =>
+      val storyIndex          = submissions.quality.length - rank - 1
+      val votesPerRankPerTick = Data.voteGainOnNewRankPerSecond(rank)
+      val quality             = submissions.quality(storyIndex)
+      val lambda              = quality * votesPerRankPerTick
+      val distribution        = Data.voteDistribution(lambda)
+      val numberOfUpvotes     = distribution.get
+      submissions.upvotes(storyIndex) += numberOfUpvotes
             }
           }
-        }
-      }
-    }
-  }
+
 }

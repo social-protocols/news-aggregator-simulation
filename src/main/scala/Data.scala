@@ -18,14 +18,6 @@ object Data {
     )
   }
 
-  val nextVoteArrivalDelay = {
-    val averageVoteArrivalSeconds =
-      1.0 / (6106438.0 / 365 / 24 / 3600) // ~5 from bigquery
-    Distribution.exponential(
-      1.0 / averageVoteArrivalSeconds,
-    )
-  }
-
   // select group_concat(rankgain, ', ') from (select cast(sum(gain) as real) / (select max(sampleTime)-min(sampleTime) from dataset) as rankgain from dataset where newRank is not null and topRank is null group by newRank order by newRank);
   val voteGainOnNewRankPerSecond    = Array[Double](
     0.000367950211080009, 0.000515815917023342, 0.000525414618181951, 0.000473078842817155, 0.000415943716873054,
@@ -76,7 +68,9 @@ object Data {
     voteGainOnTopRankPerSecond.zipWithIndex.map { case (d, i) => (i, d) }: _*,
   )
 
-  // val qualityDistribution = Distribution.normal * 0.1 + 0.5
-  val qualityDistribution = Distribution.lognormal
+  // TODO: explain and link to R model. Where does 0.7 come from?
+  val qualityDistribution              = Distribution.normal.map(x => Math.exp(x * 0.7))
+  // val qualityDistribution = Distribution.lognormal
   // val qualityDistribution = Distribution.uniform
+  def voteDistribution(lambda: Double) = Distribution.poisson(lambda)
 }
