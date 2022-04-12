@@ -71,8 +71,9 @@ object Simulation {
   }
 
   object stats {
-    val frontpageUpvotesOnRanks =
-      flatland.ArrayQueueInt.create(20000) // should cover more than a day (~16000 upvotes / day)
+    val size                              = 100000 // should cover more than a day (~16000 upvotes / day)
+    val frontpageUpvotesOnRanks           = flatland.ArrayQueueInt.create(size)
+    val frontpageUpvotesOnRanksTimestamps = flatland.ArrayQueueLong.create(size)
   }
 
   def nextStep() = {
@@ -101,7 +102,7 @@ object Simulation {
   }
 
   def castVotes() = {
-      // frontpage
+    // frontpage
     loop(Math.min(Data.voteGainOnTopRankPerSecond.length, submissions.frontPageIndices.length)) { rank =>
       val storyIndex          = submissions.frontPageIndices(rank)
       val quality             = submissions.quality(storyIndex)
@@ -114,10 +115,11 @@ object Simulation {
       // update stats
       loop(numberOfUpvotes) { _ =>
         stats.frontpageUpvotesOnRanks.add(rank)
-          }
-        }
+        stats.frontpageUpvotesOnRanksTimestamps.add(nowSeconds)
+      }
+    }
 
-      // newpage
+    // newpage
     loop(Math.min(Data.voteGainOnNewRankPerSecond.length, submissions.quality.length)) { rank =>
       val storyIndex          = submissions.quality.length - rank - 1
       val votesPerRankPerTick = Data.voteGainOnNewRankPerSecond(rank)
@@ -126,7 +128,7 @@ object Simulation {
       val distribution        = Data.voteDistribution(lambda)
       val numberOfUpvotes     = distribution.get
       submissions.upvotes(storyIndex) += numberOfUpvotes
-            }
-          }
+    }
+  }
 
 }

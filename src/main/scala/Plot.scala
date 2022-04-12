@@ -61,7 +61,7 @@ object Plot {
       },
     )
 
-  def voteOverRankDistribution(ranks: Observable[ArrayQueueInt]) =
+  def voteOverRankDistribution(ranks: Observable[(ArrayQueueInt, ArrayQueueLong)]) =
     canvas(
       cls := "border border-gray-400",
       managedElement { elem =>
@@ -80,9 +80,13 @@ object Plot {
         // context.scale(1, -1);
 
         val upvotesPerRank = new Array[Int](Data.updateSize)
-
-        ranks.foreach { ranks =>
+        ranks.foreach { case (ranks, timestamps) =>
           context.clearRect(0, 0, width, height)
+
+          // clear upvotesPerRank
+          ranks.foreachElement { rank =>
+            upvotesPerRank(rank) = 0
+          }
 
           var maxRank = 0
           ranks.foreachElement { rank =>
@@ -90,13 +94,18 @@ object Plot {
             if (rank > maxRank) maxRank = rank
           }
 
+          var maxX = 0.0
+          Data.voteGainOnTopRankPerSecond.foreachElement { x =>
+            if (x > maxX) maxX = x.toDouble
+          }
+
           // simulation data
           {
             context.fillStyle = "rgb(59, 130, 246)"
-            var maxX = 0.0
-            upvotesPerRank.foreachElement { x =>
-              if (x > maxX) maxX = x.toDouble
-            }
+            // upvotesPerRank.foreachElement { x =>
+            //   if (x > maxX) maxX = x.toDouble
+            // }
+            val timeInterval = (timestamps.last - timestamps.first).toDouble
 
             @inline def transform(x: Double, min: Double, max: Double, size: Double) = (x - min) / (max - min) * size
             @inline def transformX(x: Double)                                        = transform(x, 0, maxX, width)
@@ -105,17 +114,13 @@ object Plot {
             upvotesPerRank.foreachIndexAndElement { (rank, upvotes) =>
               val y     = transformY(rank.toDouble)
               val ynext = transformY(rank.toDouble + 1)
-              context.fillRect(0, y, transformX(upvotes.toDouble), ynext - y)
+              context.fillRect(0, y, transformX(upvotes.toDouble / timeInterval), ynext - y)
             }
           }
 
           // reference data
           {
             context.fillStyle = "rgb(246, 136, 59)"
-            var maxX = 0.0
-            Data.voteGainOnTopRankPerSecond.foreachElement { x =>
-              if (x > maxX) maxX = x.toDouble
-            }
 
             @inline def transform(x: Double, min: Double, max: Double, size: Double) = (x - min) / (max - min) * size
             @inline def transformX(x: Double)                                        = transform(x, 0, maxX, width)

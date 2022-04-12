@@ -59,7 +59,9 @@ object App {
           attr("height") := s"300",
         ),
         Plot.voteOverRankDistribution(
-          tick.value.sampleMillis(refreshMs).map(_ => Simulation.stats.frontpageUpvotesOnRanks),
+          tick.value
+            .sampleMillis(refreshMs)
+            .map(_ => (Simulation.stats.frontpageUpvotesOnRanks, Simulation.stats.frontpageUpvotesOnRanksTimestamps)),
         )(
           attr("width")  := s"300",
           attr("height") := s"400",
