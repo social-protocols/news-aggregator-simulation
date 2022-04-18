@@ -69,7 +69,8 @@ object Data {
   )
 
   // TODO: explain and link to R model. Where does 0.7 come from?
-  val qualityDistribution              = Distribution.normal.map(x => Math.exp(x * 0.7))
+  val qualityDistribution              = Distribution.normal // .map(x => Math.exp(x * 0.7))
+  // val qualityDistribution              = Distribution.normal.map(x => (x * 0.1) + 1)
   // val qualityDistribution = Distribution.lognormal
   // val qualityDistribution = Distribution.uniform
   def voteDistribution(lambda: Double) = Distribution.poisson(lambda)

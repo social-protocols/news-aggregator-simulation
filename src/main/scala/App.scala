@@ -26,7 +26,14 @@ object App {
 
     tick.value.foreach { substeps =>
       flatland.loop(substeps) { _ =>
-        Simulation.nextStep()
+        try {
+          Simulation.nextStep()
+        }
+        catch {
+          case e =>
+            e.printStackTrace()
+            tickTime.onNext(100000)
+        }
       }
     }
 

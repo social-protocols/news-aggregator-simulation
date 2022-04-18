@@ -1,6 +1,7 @@
 package simulation
 
 import flatland._
+import probability_monad._
 
 object Simulation {
   var nowSeconds     = 0L
@@ -11,7 +12,7 @@ object Simulation {
   object submissions {
     val id                    = flatland.ArrayQueueLong.create(Data.updateSize)
     val quality               = flatland.ArrayQueueDouble.create(Data.updateSize)
-    val upvotes               = flatland.ArrayQueueInt.create(Data.updateSize)
+    val upvotes               = flatland.ArrayQueueDouble.create(Data.updateSize)
     val submissionTimeSeconds = flatland.ArrayQueueLong.create(Data.updateSize)
     val rankingFormulaValue   = flatland.ArrayQueueDouble.create(Data.updateSize)
 
@@ -95,10 +96,11 @@ object Simulation {
     nowSeconds += 1
   }
 
-  def rankingFormula(upvotes: Int, ageSeconds: Long): Double = {
+  def rankingFormula(upvotes: Double, ageSeconds: Long): Double = {
     // http://www.righto.com/2013/11/how-hacker-news-ranking-really-works.html
     val ageHours = ageSeconds / 3600.0
     Math.pow(upvotes - 1.0, 0.8) / Math.pow(ageHours + 2, 1.8)
+    // (upvotes - 1.0) / (Data.voteGainOnTopRankPerSecond(rank)) * (ageHours + 2)
   }
 
   def castVotes() = {
@@ -107,9 +109,12 @@ object Simulation {
       val storyIndex          = submissions.frontPageIndices(rank)
       val quality             = submissions.quality(storyIndex)
       val votesPerRankPerTick = Data.voteGainOnTopRankPerSecond(rank)
-      val lambda              = quality * votesPerRankPerTick
+      val lambda              = Math.exp(quality) * votesPerRankPerTick
       val distribution        = Data.voteDistribution(lambda)
+      assert(lambda > 0, "lambda <= 0")
       val numberOfUpvotes     = distribution.get
+      assert(numberOfUpvotes >= 0, s"numberOfUpvotes < 0 (lambda=$lambda)")
+      // val numberOfUpvotes     = if (Distribution.uniform.get < votesPerRankPerTick) 1 else 0
       submissions.upvotes(storyIndex) += numberOfUpvotes
 
       // update stats
