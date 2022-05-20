@@ -94,10 +94,18 @@ object Plot {
             if (rank > maxRank) maxRank = rank
           }
 
-          var maxX = 0.0
-          Data.voteGainOnTopRankPerSecond.foreachElement { x =>
-            if (x > maxX) maxX = x.toDouble
-          }
+          // var maxX = 10
+
+          // Data.upvotesPerRank.foreachElement { x =>
+          //   if (x > maxX) maxX = x.toDouble
+          // }
+
+          // Data.voteGainOnTopRankPerSecond.foreachElement { x =>
+          //   if (x > maxX) maxX = x.toDouble
+          // }
+
+          var maxX = 0.03
+          maxRank = 60
 
           // simulation data
           {

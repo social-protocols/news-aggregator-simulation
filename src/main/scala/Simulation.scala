@@ -72,7 +72,7 @@ object Simulation {
   }
 
   object stats {
-    val size                              = 100000 // should cover more than a day (~16000 upvotes / day)
+    val size                              = 1000000 // should cover more than a day (~16000 upvotes / day)
     val frontpageUpvotesOnRanks           = flatland.ArrayQueueInt.create(size)
     val frontpageUpvotesOnRanksTimestamps = flatland.ArrayQueueLong.create(size)
   }
@@ -100,6 +100,7 @@ object Simulation {
     // http://www.righto.com/2013/11/how-hacker-news-ranking-really-works.html
     val ageHours = ageSeconds / 3600.0
     Math.pow(upvotes - 1.0, 0.8) / Math.pow(ageHours + 2, 1.8)
+    // (upvotes - 1.0) / Math.pow(ageHours + 2, 1.8)
     // (upvotes - 1.0) / (Data.voteGainOnTopRankPerSecond(rank)) * (ageHours + 2)
   }
 
@@ -108,13 +109,23 @@ object Simulation {
     loop(Math.min(Data.voteGainOnTopRankPerSecond.length, submissions.frontPageIndices.length)) { rank =>
       val storyIndex          = submissions.frontPageIndices(rank)
       val quality             = submissions.quality(storyIndex)
-      val votesPerRankPerTick = Data.voteGainOnTopRankPerSecond(rank)
-      val lambda              = Math.exp(quality) * votesPerRankPerTick
+
+      // val coefficient = 0.4
+      // val rank1AverageUpvotesPerTick = Data.baselineVotesOnTopRankPerSecond(0)
+      // val votesPerRankPerSecond = rank1AverageUpvotesPerTick / Math.pow(1.0 + rank, coefficient)
+      val votesPerRankPerTick = Data.baselineVotesOnTopRankPerSecond(rank)
+      val lambda              = quality * votesPerRankPerTick
       val distribution        = Data.voteDistribution(lambda)
-      assert(lambda > 0, "lambda <= 0")
       val numberOfUpvotes     = distribution.get
-      assert(numberOfUpvotes >= 0, s"numberOfUpvotes < 0 (lambda=$lambda)")
+
+      /* Simplified Model Probability of upvote = votesPerRankPerTick */
       // val numberOfUpvotes     = if (Distribution.uniform.get < votesPerRankPerTick) 1 else 0
+      // var numberOfUpvotes = Math.round(lambda).toInt
+      // val remainder = if (Distribution.uniform.get < (lambda - numberOfUpvotes)) 1 else 0
+      // numberOfUpvotes = numberOfUpvotes + remainder
+
+      assert(numberOfUpvotes >= 0, s"numberOfUpvotes < 0")
+
       submissions.upvotes(storyIndex) += numberOfUpvotes
 
       // update stats
@@ -125,15 +136,16 @@ object Simulation {
     }
 
     // newpage
-    loop(Math.min(Data.voteGainOnNewRankPerSecond.length, submissions.quality.length)) { rank =>
+    loop(Math.min(Data.baselineVotesOnNewRankPerSecond.length, submissions.quality.length)) { rank =>
       val storyIndex          = submissions.quality.length - rank - 1
-      val votesPerRankPerTick = Data.voteGainOnNewRankPerSecond(rank)
+      val votesPerRankPerTick = Data.baselineVotesOnNewRankPerSecond(rank)
       val quality             = submissions.quality(storyIndex)
       val lambda              = quality * votesPerRankPerTick
       val distribution        = Data.voteDistribution(lambda)
       val numberOfUpvotes     = distribution.get
       submissions.upvotes(storyIndex) += numberOfUpvotes
     }
+
   }
 
 }
