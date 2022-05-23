@@ -60,7 +60,11 @@ object App {
             ),
           )
         },
-        Plot.upvoteQualityPlot(tick.value.sampleMillis(refreshMs).map(_ => 0 until Simulation.submissions.id.length))(
+        Plot.upvoteQualityPlot(
+          tick.value.sampleMillis(refreshMs).map(_ => 0 until Simulation.submissions.id.length),
+          labelX = "quality",
+          labelY = "upvotes",
+        )(
           attr("width")  := s"300",
           attr("height") := s"300",
         ),
