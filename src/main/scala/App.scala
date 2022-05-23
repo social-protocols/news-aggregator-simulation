@@ -98,23 +98,38 @@ object App {
 
   def showSubmission(submissionIndex: Int): HtmlVNode = {
     import Simulation.submissions
-    val title    = s"Story ${submissions.id(submissionIndex)}"
-    val subtitle =
-      s"${submissions.upvotes(submissionIndex)} points, ${timeSpanFromSeconds(Simulation.age(submissions.submissionTimeSeconds(submissionIndex)))} ago"
+    val title      = s"Story ${submissions.id(submissionIndex)}"
+    val ageSeconds = Simulation.age(submissions.submissionTimeSeconds(submissionIndex))
+    val ageHours   = ageSeconds / 3600.0
+    val gravity    = Math.pow(ageHours + 2, 1.8)
+    val upvotes    = submissions.upvotes(submissionIndex)
+    val subtitle   =
+      s"${upvotes} points, ${timeSpanFromSeconds(ageSeconds)} ago"
 
     val qualityAlpha = Math.min(submissions.quality(submissionIndex) / Data.qualityDistribution.ev * 0.5, 1.0)
+    val qualityDot   = div(
+      cls     := "bg-blue-400 inline-block mr-1 rounded-sm",
+      opacity := qualityAlpha,
+      width   := "10px",
+      height  := "10px",
+    )
+
+    def bar(fraction: Double) =
+      div(
+        cls   := "h-1",
+        width := s"${fraction * 100}%",
+      )
+
     div(
       cls := "mt-2",
       div(
-        div(
-          cls     := "bg-blue-400 inline-block mr-1 rounded-sm",
-          opacity := qualityAlpha,
-          width   := "10px",
-          height  := "10px",
-        ),
+        qualityDot,
         title,
       ),
-      div(subtitle, opacity := 0.5),
+      bar(Math.min(upvotes, 500) / 500.0)(cls        := "bg-blue-400"),
+      bar(ageSeconds.toDouble / (3600.0 * 48.0))(cls := "bg-green-500"),
+      bar(gravity / (24 * 24))(cls                   := "bg-red-500"),
+      div(subtitle, opacity                          := 0.5),
     )
   }
 
