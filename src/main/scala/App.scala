@@ -69,6 +69,18 @@ object App {
           tick.value
             .sampleMillis(refreshMs)
             .map(_ => (Simulation.stats.frontpageUpvotesOnRanks, Simulation.stats.frontpageUpvotesOnRanksTimestamps)),
+          maxX = 0.03,
+          referenceData = Data.voteGainOnTopRankPerSecond,
+        )(
+          attr("width")  := s"300",
+          attr("height") := s"400",
+        ),
+        Plot.voteOverRankDistribution(
+          tick.value
+            .sampleMillis(refreshMs)
+            .map(_ => (Simulation.stats.newpageUpvotesOnRanks, Simulation.stats.newpageUpvotesOnRanksTimestamps)),
+          maxX = 0.001,
+          referenceData = Data.voteGainOnNewRankPerSecond,
         )(
           attr("width")  := s"300",
           attr("height") := s"400",

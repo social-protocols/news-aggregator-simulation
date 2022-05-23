@@ -61,7 +61,11 @@ object Plot {
       },
     )
 
-  def voteOverRankDistribution(ranks: Observable[(ArrayQueueInt, ArrayQueueLong)]) =
+  def voteOverRankDistribution(
+    ranks: Observable[(ArrayQueueInt, ArrayQueueLong)],
+    maxX: Double,
+    referenceData: Array[Double],
+  ) =
     canvas(
       cls := "border border-gray-400",
       managedElement { elem =>
@@ -100,11 +104,11 @@ object Plot {
           //   if (x > maxX) maxX = x.toDouble
           // }
 
-          // Data.voteGainOnTopRankPerSecond.foreachElement { x =>
+          // referenceData.foreachElement { x =>
           //   if (x > maxX) maxX = x.toDouble
           // }
 
-          var maxX = 0.03
+          // var maxX = 0.03
           maxRank = 60
 
           // simulation data
@@ -136,7 +140,7 @@ object Plot {
 
             upvotesPerRank.foreachIndex { rank =>
               val upvotes =
-                if (rank < Data.voteGainOnTopRankPerSecond.length) Data.voteGainOnTopRankPerSecond(rank) else 0
+                if (rank < referenceData.length) referenceData(rank) else 0
               val y       = transformY(rank.toDouble)
               val ynext   = transformY(rank.toDouble + 1)
               context.fillRect(0, y, transformX(upvotes.toDouble), (ynext - y) / 2)
