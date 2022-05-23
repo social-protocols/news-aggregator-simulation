@@ -31,19 +31,19 @@ object Plot {
         submissionIndices.foreach { submissionIndices =>
           context.clearRect(0, 0, width, height)
 
-          var minX = Double.PositiveInfinity
-          var maxX = 0.0
-          Simulation.submissions.quality.foreachElement { x =>
-            if (x > maxX) maxX = x
-            if (x < minX) minX = x
-          }
+          var minX = 0
+          var maxX = 1.5
+          // Simulation.submissions.quality.foreachElement { x =>
+          //   if (x > maxX) maxX = x
+          //   if (x < minX) minX = x
+          // }
 
-          var minY = Double.PositiveInfinity
-          var maxY = 0.0
-          Simulation.submissions.upvotes.foreachElement { y =>
-            if (y > maxY) maxY = y.toDouble
-            if (y < minY) minY = y.toDouble
-          }
+          var minY = 0
+          var maxY = 500.0
+          // Simulation.submissions.upvotes.foreachElement { y =>
+          //   if (y > maxY) maxY = y.toDouble
+          //   if (y < minY) minY = y.toDouble
+          // }
 
           @inline def transform(x: Double, min: Double, max: Double, size: Double) = (x - min) / (max - min) * size
           @inline def transformX(x: Double)                                        = transform(x, minX, maxX, width)
