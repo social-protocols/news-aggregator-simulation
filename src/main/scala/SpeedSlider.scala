@@ -15,8 +15,8 @@ object SpeedSlider {
       display.flex,
       button("slow", onClick.use(max) --> tickTime, buttonStyle),
       input(
-        tpe     := "range",
-        width   := "500px",
+        tpe   := "range",
+        width := "500px",
         onInput.value.map(-_.toInt) --> tickTime,
         value <-- tickTime.map(v => (-v).toString),
         minAttr := s"-${max}",

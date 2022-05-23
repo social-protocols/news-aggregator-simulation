@@ -141,8 +141,8 @@ object Plot {
             upvotesPerRank.foreachIndex { rank =>
               val upvotes =
                 if (rank < referenceData.length) referenceData(rank) else 0
-              val y       = transformY(rank.toDouble)
-              val ynext   = transformY(rank.toDouble + 1)
+              val y     = transformY(rank.toDouble)
+              val ynext = transformY(rank.toDouble + 1)
               context.fillRect(0, y, transformX(upvotes.toDouble), (ynext - y) / 2)
             }
           }

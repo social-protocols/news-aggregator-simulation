@@ -64,7 +64,7 @@ object Simulation {
     }
 
     private var lastId: Long = 0
-    def nextId: Long         = {
+    def nextId: Long = {
       val next = lastId + 1
       lastId = next
       next

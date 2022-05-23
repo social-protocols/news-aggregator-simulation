@@ -27,8 +27,8 @@ lazy val root = (project in file("."))
   )
   .settings(scalaJsMacrotaskExecutor)
   .settings(
-    name                          := "news-aggregator-simulation",
-    libraryDependencies          ++= Seq(
+    name := "news-aggregator-simulation",
+    libraryDependencies ++= Seq(
       "io.github.outwatch"                   %%% "outwatch"          % versions.outwatch,
       "io.github.outwatch"                   %%% "outwatch-util"     % versions.outwatch,
       "com.github.fdietze.flatland"          %%% "flatland"          % "6047f7b",
@@ -45,7 +45,7 @@ lazy val root = (project in file("."))
     scalacOptions --= Seq(
       "-Xfatal-warnings",
     ), // overwrite option from https://github.com/DavidGregory084/sbt-tpolecat
-    useYarn                       := true, // Makes scalajs-bundler use yarn instead of npm
+    useYarn := true, // Makes scalajs-bundler use yarn instead of npm
     scalaJSLinkerConfig ~= (_.withModuleKind(
       ModuleKind.CommonJSModule,
     )), // configure Scala.js to emit a JavaScript module instead of a top-level script
@@ -55,7 +55,7 @@ lazy val root = (project in file("."))
     startWebpackDevServer / version   := "3.11.3",
     webpackDevServerExtraArgs         := Seq("--color"),
     fullOptJS / webpackEmitSourceMaps := true,
-    fastOptJS / webpackBundlingMode   := BundlingMode
+    fastOptJS / webpackBundlingMode := BundlingMode
       .LibraryOnly(), // https://scalacenter.github.io/scalajs-bundler/cookbook.html#performance
     fastOptJS / webpackConfigFile := Some(baseDirectory.value / "webpack.config.dev.js"),
     fullOptJS / webpackConfigFile := Some(baseDirectory.value / "webpack.config.prod.js"),

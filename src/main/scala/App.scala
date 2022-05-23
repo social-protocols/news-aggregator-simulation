@@ -28,8 +28,7 @@ object App {
       flatland.loop(substeps) { _ =>
         try {
           Simulation.nextStep()
-        }
-        catch {
+        } catch {
           case e =>
             e.printStackTrace()
             tickTime.onNext(100000)
@@ -119,7 +118,7 @@ object App {
         title,
       ),
       bar(1)(bar(Math.min(quality / 2.0, 1.0))(cls := "bg-blue-400"))(
-        cls                                          := "bg-gray-100 relative",
+        cls := "bg-gray-100 relative",
         div(cls := "absolute top-0 left-1/2 w-1 h-1 bg-blue-700"),
       ),
       bar(Math.min(upvotes, 500) / 500.0)(cls        := "bg-violet-400"),

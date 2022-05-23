@@ -3,8 +3,8 @@ package simulation
 import probability_monad._
 
 object Data {
-  val updateSize              = 1500 // TODO: source for this number
-  val updateIntervalSeconds   = 15   // TODO: source for this number
+  val updateSize            = 1500 // TODO: source for this number
+  val updateIntervalSeconds = 15   // TODO: source for this number
   val newFrontPageVotingRatio =
     0.0847554613080211 // select (select cast(sum(gain) as real) from dataset where newrank is not null and toprank is null) / (select sum(gain) from dataset where newrank is null and toprank is not null);
   val minScoreToAppearOnFrontpage =
@@ -111,7 +111,7 @@ object Data {
   // )
 
   // these are just guesses
-  val qualityDistribution   = Distribution.normal.map(x => Math.exp(-0.23 + (x * .21)))
+  val qualityDistribution = Distribution.normal.map(x => Math.exp(-0.23 + (x * .21)))
 
 //  -4, .27 works greaet except for top four, with coefficient .35
   // val qualityDistribution              = Distribution.normal.map(x => (x * 0.1) + 1)
