@@ -29,7 +29,7 @@ object App {
         try {
           Simulation.nextStep()
         } catch {
-          case e =>
+          case e: Throwable =>
             e.printStackTrace()
             tickTime.onNext(100000)
         }
@@ -49,14 +49,29 @@ object App {
           speed.onNext((Simulation.nowSeconds - lastStep).toDouble * 1000.0 / refreshMs)
           lastStep = Simulation.nowSeconds
 
-          VDomModifier(
-            showPage(
-              "New",
-              (Simulation.submissions.id.length - 1) to Math.max(Simulation.submissions.id.length - 30, 0) by -1,
+          div(
+            cls := "pt-5 px-5 text-xs",
+            div(
+              span("quality", cls := "bg-blue-400 text-white"),
+              span(" "),
+              span(" > 1", cls := "bg-blue-400 text-white"),
             ),
-            showPage(
-              "Frontpage",
-              Simulation.submissions.frontPageIndices.take(30),
+            div(
+              span("log(score)", cls := "bg-green-400 text-white"),
+              " + ",
+              span("log(gravity)", cls := "bg-red-400 text-white"),
+              " = log(upvotes)",
+            ),
+            div(
+              cls := "flex",
+              showPage(
+                "Newpage",
+                (Simulation.submissions.id.length - 1) to Math.max(Simulation.submissions.id.length - 30, 0) by -1,
+              )(cls := "w-60 pr-5"),
+              showPage(
+                "Frontpage",
+                Simulation.submissions.frontPageIndices.take(30),
+              )(cls := "w-60 pr-5"),
             ),
           )
         },
@@ -94,8 +109,7 @@ object App {
 
   def showPage(title: String, submissionIndices: Iterable[Int]) =
     div(
-      cls := "p-5 w-80",
-      div(title),
+      div(title, cls := "font-bold"),
       submissionIndices.map(showSubmission).toSeq,
     )
 
@@ -116,20 +130,25 @@ object App {
         width := s"${fraction * 100}%",
       )
 
+    val maxLog = 10
     div(
       cls := "mt-2",
-      div(
-        title,
-      ),
+      div(title),
+      div(subtitle, cls := "opacity-50"),
       bar(1)(bar(Math.min(quality / 2.0, 1.0))(cls := "bg-blue-400"))(
-        cls := "bg-gray-100 relative",
-        div(cls := "absolute top-0 left-1/2 w-1 h-1 bg-blue-700"),
-      ),
-      bar(Math.min(upvotes, 500) / 500.0)(cls        := "bg-violet-400"),
-      bar(ageSeconds.toDouble / (3600.0 * 48.0))(cls := "bg-green-500"),
-      bar(gravity / (20 * 20))(cls                   := "bg-red-400"),
-      bar(score / 5)(cls                             := "bg-black"),
-      div(subtitle, cls                              := "text-sm opacity-50"),
+        cls := "relative",
+        // indicator for quality = 1
+        div(cls := "absolute top-0 left-1/2 w-1 h-1 bg-base-100"),
+      ), {
+        val logScore   = Math.log(score + 1)   // +1 so the result stays positive
+        val logGravity = Math.log(gravity + 1) // +1 so the result stays positive
+
+        div(
+          cls := "h-1 flex",
+          bar(logScore / maxLog)(cls   := "bg-green-400 shrink-0"),
+          bar(logGravity / maxLog)(cls := "bg-red-400 shrink-0"),
+        )
+      },
     )
   }
 
