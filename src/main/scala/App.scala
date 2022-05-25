@@ -52,14 +52,14 @@ object App {
           div(
             cls := "pt-5 px-5 text-xs",
             div(
-              span("quality", cls := "bg-blue-400 text-white"),
+              span("quality < 1", cls := "bg-blue-500 text-white font-bold px-2 rounded"),
               span(" "),
-              span(" > 1", cls := "bg-blue-400 text-white"),
+              span(" > 1", cls := "bg-blue-500 text-white font-bold px-2 rounded"),
             ),
             div(
-              span("log(score)", cls := "bg-green-400 text-white"),
+              span("log(score)", cls := "bg-green-500 text-white font-bold px-2 rounded"),
               " + ",
-              span("log(gravity)", cls := "bg-red-400 text-white"),
+              span("log(gravity)", cls := "bg-red-500 text-white font-bold px-2 rounded"),
               " = log(upvotes)",
             ),
             div(
