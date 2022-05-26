@@ -3,54 +3,65 @@ package simulation
 import outwatch._
 import outwatch.dsl._
 import colibri._
-import cats.effect.SyncIO
+import scala.scalajs.js
+import js.timers.setInterval
+import scala.util.Random
 
 object App {
   val app = {
-    val tickTime     = Subject.behavior(1000)
-    val speed        = Subject.behavior(0.0)
-    val resetTrigger = Subject.behavior(())
-
     val refreshMs = 500
-    val subSteps  = 600
-    var lastStep  = Simulation.nowSeconds
+    val minFps    = 30
 
-    val tick = resetTrigger
-      .combineLatest(tickTime)
-      .switchMap { case (_, tickTime) =>
-        Observable
-          .intervalMillis(tickTime)
-          .map(_ => if (tickTime == 0) subSteps else 1)
-      }
-      .publish
+    val maxSpeed           = Subject.behavior(500.0)
+    val lastSpeeds         = flatland.ArrayQueueDouble.create(minFps)
+    def avgSpeed           = lastSpeeds.sum / lastSpeeds.length
+    var totalSeconds: Long = 0L
 
-    tick.value.foreach { substeps =>
-      flatland.loop(substeps) { _ =>
+    val batchDurationMs = 1000.0 / minFps
+
+    setInterval(batchDurationMs.toDouble) {
+      if (maxSpeed.now() > 0) {
+        val maxStepsDouble = maxSpeed.now() / minFps
+        val fractionalStep = if (Random.nextDouble() < maxStepsDouble - maxStepsDouble.toInt) 1 else 0
+        val maxSteps: Int  = maxStepsDouble.toInt + fractionalStep
+        // println(f"${nowMs()}: $maxStepsDouble%.2f -> $maxSteps%d")
+        def nowMs()     = System.nanoTime().toDouble / 1000000
+        val startMs     = nowMs()
+        def elapsedMs() = nowMs() - startMs
+        var count       = 0
         try {
-          Simulation.nextStep()
+          while (count < maxSteps && elapsedMs() < batchDurationMs) {
+            Simulation.nextStep()
+            count += 1
+          }
         } catch {
           case e: Throwable =>
             e.printStackTrace()
-            tickTime.onNext(100000)
+            maxSpeed.onNext(0)
         }
+        totalSeconds += count
+        lastSpeeds.add(count * minFps)
+      } else {
+        lastSpeeds.add(0)
       }
     }
 
     div(
-      tick.value.scan(0L)((sum, substeps) => sum + substeps).sampleMillis(refreshMs).map(timeSpanFromSeconds),
-      div("speed: ", speed, "x"),
-      managed(SyncIO(tick.connect())),
-      SpeedSlider(tickTime),
+      cls := "p-5",
+      div(
+        cls := "flex",
+        SpeedSlider(maxSpeed, Observable.intervalMillis(refreshMs).map(_ => avgSpeed))(cls := "mr-2"),
+        Observable
+          .intervalMillis(refreshMs)
+          .map(_ => div(s"(${timeSpanFromSeconds(totalSeconds)})")),
+      ),
 
       // visualization runs independently of simulation
       div(
         cls := "flex items-start",
-        tick.value.sampleMillis(refreshMs).map { _ =>
-          speed.onNext((Simulation.nowSeconds - lastStep).toDouble * 1000.0 / refreshMs)
-          lastStep = Simulation.nowSeconds
-
+        Observable.intervalMillis(refreshMs).map[VDomModifier] { _ =>
           div(
-            cls := "pt-5 px-5 text-xs",
+            cls := "pt-5 text-xs",
             div(
               span("quality < 1", cls := "bg-blue-500 text-white font-bold px-2 rounded"),
               span(" "),
@@ -76,7 +87,7 @@ object App {
           )
         },
         Plot.upvoteQualityPlot(
-          tick.value.sampleMillis(refreshMs).map(_ => 0 until Simulation.submissions.id.length),
+          Observable.intervalMillis(refreshMs).map(_ => 0 until Simulation.submissions.id.length),
           labelX = "quality",
           labelY = "upvotes",
         )(
@@ -84,8 +95,8 @@ object App {
           attr("height") := s"300",
         ),
         Plot.voteOverRankDistribution(
-          tick.value
-            .sampleMillis(refreshMs)
+          Observable
+            .intervalMillis(refreshMs)
             .map(_ => (Simulation.stats.frontpageUpvotesOnRanks, Simulation.stats.frontpageUpvotesOnRanksTimestamps)),
           maxX = 0.03,
           referenceData = Data.voteGainOnTopRankPerSecond,
@@ -94,8 +105,8 @@ object App {
           attr("height") := s"400",
         ),
         Plot.voteOverRankDistribution(
-          tick.value
-            .sampleMillis(refreshMs)
+          Observable
+            .intervalMillis(refreshMs)
             .map(_ => (Simulation.stats.newpageUpvotesOnRanks, Simulation.stats.newpageUpvotesOnRanksTimestamps)),
           maxX = 0.001,
           referenceData = Data.voteGainOnNewRankPerSecond,
@@ -138,7 +149,7 @@ object App {
       bar(1)(bar(Math.min(quality / 2.0, 1.0))(cls := "bg-blue-400"))(
         cls := "relative",
         // indicator for quality = 1
-        div(cls := "absolute top-0 left-1/2 w-1 h-1 bg-base-100"),
+        div(cls := "absolute top-0 left-1/2 h-1 bg-base-100", width := "1px"),
       ), {
         val logScore   = Math.log(score + 1)   // +1 so the result stays positive
         val logGravity = Math.log(gravity + 1) // +1 so the result stays positive
