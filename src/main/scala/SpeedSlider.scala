@@ -7,7 +7,7 @@ import outwatch.dsl._
 object SpeedSlider {
   def apply(maxSpeed: Subject[Double], currentSpeed: Observable[Double]) = {
     val min = 0.0
-    val max = 10000.0
+    val max = 5 * 3600.0
 
     val buttonStyle = cls := "btn btn-ghost btn-xs mr-1"
 
@@ -16,6 +16,8 @@ object SpeedSlider {
       div("speed: "),
       button("stop", onClick.use(0.0) --> maxSpeed, buttonStyle),
       button("realtime", onClick.use(1.0) --> maxSpeed, buttonStyle),
+      button("1m/s", onClick.use(60.0) --> maxSpeed, buttonStyle),
+      button("1h/s", onClick.use(3600.0) --> maxSpeed, buttonStyle),
       button("max", onClick.use(max) --> maxSpeed, buttonStyle),
       div(
         input(
@@ -34,7 +36,10 @@ object SpeedSlider {
       ),
       div(
         cls := "ml-2 shrink-0",
-        currentSpeed.combineLatestMap(maxSpeed)((speed, maxSpeed) => f"$speed%.0fx / $maxSpeed%.0fx"),
+        // currentSpeed.combineLatestMap(maxSpeed)((speed, maxSpeed) => f"$speed%.0fx / $maxSpeed%.0fx"),
+        currentSpeed.combineLatestMap(maxSpeed)((speed, maxSpeed) =>
+          f"${speed / 3600.0}%.1fh/s / ${maxSpeed / 3600.0}%.1fh/s",
+        ),
       ),
     )
   }

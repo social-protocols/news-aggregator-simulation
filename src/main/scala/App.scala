@@ -12,7 +12,7 @@ object App {
     val refreshMs = 500
     val minFps    = 30
 
-    val maxSpeed           = Subject.behavior(500.0)
+    val maxSpeed           = Subject.behavior(1800.0)
     val lastSpeeds         = flatland.ArrayQueueDouble.create(minFps)
     def avgSpeed           = lastSpeeds.sum / lastSpeeds.length
     var totalSeconds: Long = 0L
